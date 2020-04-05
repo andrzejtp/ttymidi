@@ -160,7 +160,7 @@ static int open_seq(snd_seq_t** seq)
 static void build_midi_termios(struct termios *newtio)
 {
 	/*
-	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed.
+	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed
 	 * CS8      : 8n1 (8bit, no parity, 1 stopbit)
 	 * CLOCAL   : local connection, no modem contol
 	 * CREAD    : enable receiving characters
@@ -179,7 +179,7 @@ static void build_midi_termios(struct termios *newtio)
 	 */
 	newtio->c_lflag = 0; // non-canonical
 
-	/* set up: we'll be reading 4 bytes at a time. */
+	/* set up: we'll be reading 4 bytes at a time */
 	newtio->c_cc[VTIME] = 0;	/* inter-character timer unused */
 	newtio->c_cc[VMIN] = 1;		/* blocking read until n character arrives */
 
@@ -298,22 +298,22 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		while (buf[0] >> 7 == 0);
 
 	while (run) {
-		/* let's align to the beginning of a midi command. */
-		int i = 1;
+		int i;
 
-		/* super-debug mode: only print to screen whatever comes through the serial port. */
+		/* super-debug mode: only print to screen whatever comes through the serial port */
 		if (arguments.printonly) {
 			read(serial, buf, 1);
-			printf("%x\t", (int) buf[0]&0xFF);
+			printf("%x\t", (int)buf[0] & 0xFF);
 			fflush(stdout);
 			continue;
 		}
 
-		while (i < 3) {
-			read(serial, buf+i, 1);
+		/* let's start at the beginning of a midi command */
+		for (i = 1; i < 3; ) {
+			read(serial, buf + i, 1);
 
 			if (buf[i] >> 7 != 0) {
-				/* Status byte received and will always be first bit!*/
+				/* Status byte received and will always be first bit! */
 				buf[0] = buf[i];
 				i = 1;
 			} else {
@@ -322,7 +322,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 					/* It was 2nd data byte so we have a MIDI event process! */
 					i = 3;
 				} else {
-					/* Lets figure out are we done or should we read one more byte. */
+					/* Lets figure out are we done or should we read one more byte */
 					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0)
 						i = 3;
 					else
@@ -338,8 +338,8 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 			read(serial, buf, 1);
 			msglen = buf[0];
-			if (msglen > MAX_MSG_SIZE-1)
-				msglen = MAX_MSG_SIZE-1;
+			if (msglen > MAX_MSG_SIZE - 1)
+				msglen = MAX_MSG_SIZE - 1;
 
 			read(serial, msg, msglen);
 
@@ -379,7 +379,7 @@ int main(int argc, char** argv)
 
 	/* 
 	 * Open modem device for reading and not as controlling tty
-	 * because we don't want to get killed if linenoise sends CTRL-C.
+	 * because we don't want to get killed if linenoise sends CTRL-C
 	 */
 	serial = open(arguments.serialdevice, O_RDWR | O_NOCTTY ); 
 	if (serial < 0) {
