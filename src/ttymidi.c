@@ -14,20 +14,18 @@
     You should have received a copy of the GNU General Public License
     along with ttymidi.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <stdlib.h>
-#include <stdbool.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <argp.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <stdio.h>
-#include <argp.h>
-#include <alsa/asoundlib.h>
 #include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <alsa/asoundlib.h>
 #include <linux/serial.h>
-#include <linux/ioctl.h>
-#include <asm/ioctls.h>
 
 #define MAX_DEV_STR_LEN		32
 #define DEFAULT_SERIAL		"/dev/ttyUSB0"
@@ -270,10 +268,10 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 	int msglen;
 	
 	/* Lets first fast forward to first status byte... */
-	if (!arguments.printonly) {
-		do read(serial, buf, 1);
+	if (!arguments.printonly)
+		do
+			read(serial, buf, 1);
 		while (buf[0] >> 7 == 0);
-	}
 
 	while (run) {
 		/* 
@@ -303,30 +301,30 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 			} else {
 				/* Data byte received */
 				if (i == 2) {
-					/* It was 2nd data byte so we have a MIDI event
-					   process! */
+					/* It was 2nd data byte so we have a MIDI event process! */
 					i = 3;
 				} else {
 					/* Lets figure out are we done or should we read one more byte. */
-					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0) {
+					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0)
 						i = 3;
-					} else {
+					else
 						i = 2;
-					}
 				}
 			}
 
 		}
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
-		if (buf[0] == (char) 0xFF && buf[1] == (char) 0x00 && buf[2] == (char) 0x00) {
+		if (buf[0] == (char)0xFF && buf[1] == (char)0x00 && buf[2] == (char)0x00) {
 			read(serial, buf, 1);
 			msglen = buf[0];
-			if (msglen > MAX_MSG_SIZE-1) msglen = MAX_MSG_SIZE-1;
+			if (msglen > MAX_MSG_SIZE-1)
+				msglen = MAX_MSG_SIZE-1;
 
 			read(serial, msg, msglen);
 
-			if (arguments.silent) continue;
+			if (arguments.silent)
+				continue;
 
 			/* make sure the string ends with a null character */
 			msg[msglen] = 0;
@@ -335,10 +333,9 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 			puts(msg);
 			putchar('\n');
 			fflush(stdout);
+		} else {
+			parse_midi_command(seq, port_out_id, buf);
 		}
-
-		/* parse MIDI message */
-		else parse_midi_command(seq, port_out_id, buf);
 	}
 }
 
@@ -347,26 +344,22 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 
 int main(int argc, char** argv)
 {
-	//arguments arguments;
 	struct termios oldtio, newtio;
+#if 0
 	struct serial_struct ser_info;
+#endif
 	snd_seq_t *seq;
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
-	/*
-	 * Open MIDI output port
-	 */
-
+	/* Open MIDI output port */
 	port_out_id = open_seq(&seq);
 
 	/* 
-	 *  Open modem device for reading and not as controlling tty because we don't
-	 *  want to get killed if linenoise sends CTRL-C.
+	 * Open modem device for reading and not as controlling tty
+	 * because we don't want to get killed if linenoise sends CTRL-C.
 	 */
-	
 	serial = open(arguments.serialdevice, O_RDWR | O_NOCTTY ); 
-
 	if (serial < 0) {
 		perror(arguments.serialdevice); 
 		exit(-1); 
@@ -380,20 +373,13 @@ int main(int argc, char** argv)
 
 	/* 
 	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed.
-	 * CRTSCTS  : output hardware flow control (only used if the cable has
-	 * all necessary lines. See sect. 7 of Serial-HOWTO)
 	 * CS8      : 8n1 (8bit, no parity, 1 stopbit)
 	 * CLOCAL   : local connection, no modem contol
 	 * CREAD    : enable receiving characters
 	 */
-	newtio.c_cflag = arguments.baudrate | CS8 | CLOCAL | CREAD; // CRTSCTS removed
+	newtio.c_cflag = arguments.baudrate | CS8 | CLOCAL | CREAD;
 
-	/*
-	 * IGNPAR  : ignore bytes with parity errors
-	 * ICRNL   : map CR to NL (otherwise a CR input on the other computer
-	 * will not terminate input)
-	 * otherwise make device raw (no other input processing)
-	 */
+	/* IGNPAR  : ignore bytes with parity errors */
 	newtio.c_iflag = IGNPAR;
 
 	/* Raw output */
@@ -408,26 +394,22 @@ int main(int argc, char** argv)
 	/* 
 	 * set up: we'll be reading 4 bytes at a time.
 	 */
-	newtio.c_cc[VTIME]    = 0;     /* inter-character timer unused */
-	newtio.c_cc[VMIN]     = 1;     /* blocking read until n character arrives */
+	newtio.c_cc[VTIME] = 0;	/* inter-character timer unused */
+	newtio.c_cc[VMIN] = 1;	/* blocking read until n character arrives */
 
-	/* 
-	 * now clean the modem line and activate the settings for the port
-	 */
+	/* now clean the modem line and activate the settings for the port */
 	tcflush(serial, TCIFLUSH);
 	tcsetattr(serial, TCSANOW, &newtio);
 
-	// Linux-specific: enable low latency mode (FTDI "nagling off")
-//	ioctl(serial, TIOCGSERIAL, &ser_info);
-//	ser_info.flags |= ASYNC_LOW_LATENCY;
-//	ioctl(serial, TIOCSSERIAL, &ser_info);
+#if 0
+	/* Linux-specific: enable low latency mode (FTDI "nagling off") */
+	ioctl(serial, TIOCGSERIAL, &ser_info);
+	ser_info.flags |= ASYNC_LOW_LATENCY;
+	ioctl(serial, TIOCSSERIAL, &ser_info);
+#endif
 
 	if (arguments.printonly) 
 		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
-
-	/* 
-	 * read commands
-	 */
 
 	signal(SIGINT, exit_cli);
 	signal(SIGTERM, exit_cli);
