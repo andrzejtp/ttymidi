@@ -156,9 +156,10 @@ static int open_seq(snd_seq_t** seq)
 
 	snd_seq_set_client_name(*seq, arguments.name);
 
-	if ((port_id = snd_seq_create_simple_port(*seq, "MIDI out",
-						  SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-						  SND_SEQ_PORT_TYPE_APPLICATION)) < 0)
+	port_id = snd_seq_create_simple_port(*seq, "MIDI out",
+					     SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ,
+					     SND_SEQ_PORT_TYPE_APPLICATION);
+	if (port_id < 0)
 		fprintf(stderr, "Error creating sequencer port.\n");
 
 	return port_id;
@@ -241,51 +242,60 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	switch (operation) {
 		case MIDI_NOTE_OFF:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Note off           %03u %03u %03u\n", operation, channel, param1, param2);
+				printf("Serial  0x%x Note off           %03u %03u %03u\n",
+					operation, channel, param1, param2);
 			snd_seq_ev_set_noteoff(&ev, channel, param1, param2);
 			break;
 			
 		case MIDI_NOTE_ON:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Note on            %03u %03u %03u\n", operation, channel, param1, param2);
+				printf("Serial  0x%x Note on            %03u %03u %03u\n",
+					operation, channel, param1, param2);
 			snd_seq_ev_set_noteon(&ev, channel, param1, param2);
 			break;
 			
 		case MIDI_POLY_KEY_PRESSURE:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Pressure change    %03u %03u %03u\n", operation, channel, param1, param2);
+				printf("Serial  0x%x Pressure change    %03u %03u %03u\n",
+					operation, channel, param1, param2);
 			snd_seq_ev_set_keypress(&ev, channel, param1, param2);
 			break;
 
 		case MIDI_CONTROL_CHANGE:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Controller change  %03u %03u %03u\n", operation, channel, param1, param2);
+				printf("Serial  0x%x Controller change  %03u %03u %03u\n",
+					operation, channel, param1, param2);
 			snd_seq_ev_set_controller(&ev, channel, param1, param2);
 			break;
 
 		case MIDI_PROGRAM_CHANGE:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Program change     %03u %03u\n", operation, channel, param1);
+				printf("Serial  0x%x Program change     %03u %03u\n",
+					operation, channel, param1);
 			snd_seq_ev_set_pgmchange(&ev, channel, param1);
 			break;
 
 		case MIDI_MONO_KEY_PRESSURE:
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Channel change     %03u %03u\n", operation, channel, param1);
+				printf("Serial  0x%x Channel change     %03u %03u\n",
+					operation, channel, param1);
 			snd_seq_ev_set_chanpress(&ev, channel, param1);
 			break;
 
 		case MIDI_PITCH_BEND:
 			param1 = (param1 & 0x7F) + ((param2 & 0x7F) << 7);
 			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Pitch bend         %03u %05i\n", operation, channel, param1);
-			snd_seq_ev_set_pitchbend(&ev, channel, param1 - 8192); /* in alsa MIDI we want signed int */
+				printf("Serial  0x%x Pitch bend         %03u %05i\n",
+					operation, channel, param1);
+			/* in alsa MIDI we want signed int */
+			snd_seq_ev_set_pitchbend(&ev, channel, param1 - 8192);
 			break;
 
 		/* Not implementing system commands (0xF0) */
 		default:
 			if (!arguments.silent) 
-				printf("0x%x Unknown MIDI cmd   %03u %03u %03u\n", operation, channel, param1, param2);
+				printf("0x%x Unknown MIDI cmd   %03u %03u %03u\n",
+					operation, channel, param1, param2);
 			break;
 	}
 
