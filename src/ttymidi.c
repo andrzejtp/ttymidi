@@ -57,10 +57,11 @@ static struct argp_option options[] = {
 	{ 0 }
 };
 
+static char doc[] = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
+
 static bool run = true;
-static int serial;
 static int port_out_id;
-static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
+static int serial;
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
@@ -135,10 +136,12 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-static struct argp argp = { options, parse_opt, 0, doc };
+static struct argp argp = {
+	.options = options,
+	.parser = parse_opt,
+	.doc = doc,
+};
 
-/* --------------------------------------------------------------------- */
-// MIDI stuff
 int open_seq(snd_seq_t** seq) 
 {
 	int port_out_id;
