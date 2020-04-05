@@ -54,7 +54,6 @@ static bool run = true;
 int serial;
 int port_out_id;
 const char *argp_program_version     = "ttymidi 0.60";
-const char *argp_program_bug_address = "tvst@hotmail.com";
 static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 static struct arguments arguments;
 
@@ -357,7 +356,6 @@ int main(int argc, char** argv)
 	//arguments arguments;
 	struct termios oldtio, newtio;
 	struct serial_struct ser_info;
-	char* modem_device = "/dev/ttyS0";
 	snd_seq_t *seq;
 
 	arg_set_defaults(&arguments);
