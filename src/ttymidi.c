@@ -14,9 +14,8 @@
     You should have received a copy of the GNU General Public License
     along with ttymidi.  If not, see <http://www.gnu.org/licenses/>.
 */
-
-
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,21 +30,15 @@
 #include <linux/ioctl.h>
 #include <asm/ioctls.h>
 
-#define FALSE                         0
-#define TRUE                          1
+#define MAX_DEV_STR_LEN		32
+#define MAX_MSG_SIZE		1024
 
-#define MAX_DEV_STR_LEN               32
-#define MAX_MSG_SIZE                1024
-
-/* change this definition for the correct port */
-//#define _POSIX_SOURCE 1 /* POSIX compliant source */
-
-int run;
-int serial;
-int port_out_id;
-
-/* --------------------------------------------------------------------- */
-// Program options
+struct arguments {
+	int  silent, verbose, printonly;
+	char serialdevice[MAX_DEV_STR_LEN];
+	int  baudrate;
+	char name[MAX_DEV_STR_LEN];
+};
 
 static struct argp_option options[] = {
 	{"serialdevice" , 's', "DEV" , 0, "Serial device to use. Default = /dev/ttyUSB0" },
@@ -57,17 +50,13 @@ static struct argp_option options[] = {
 	{ 0 }
 };
 
-struct arguments {
-	int  silent, verbose, printonly;
-	char serialdevice[MAX_DEV_STR_LEN];
-	int  baudrate;
-	char name[MAX_DEV_STR_LEN];
-};
-
-void exit_cli(int sig) {
-	run = FALSE;
-	printf("\rttymidi closing down ... ");
-}
+static bool run = true;
+int serial;
+int port_out_id;
+const char *argp_program_version     = "ttymidi 0.60";
+const char *argp_program_bug_address = "tvst@hotmail.com";
+static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
+static struct arguments arguments;
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
@@ -87,28 +76,48 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 			arguments->verbose = 1;
 			break;
 		case 's':
-			if (arg == NULL) break;
+			if (!arg)
+				break;
 			strncpy(arguments->serialdevice, arg, MAX_DEV_STR_LEN);
 			break;
 		case 'n':
-			if (arg == NULL) break;
+			if (!arg)
+				break;
 			strncpy(arguments->name, arg, MAX_DEV_STR_LEN);
 			break;
 		case 'b':
-			if (arg == NULL) break;
+			if (!arg)
+				break;
 			baud_temp = strtol(arg, NULL, 0);
 			if (baud_temp != EINVAL && baud_temp != ERANGE)
-				switch (baud_temp)
-				{
-					case 1200   : arguments->baudrate = B1200  ; break;
-					case 2400   : arguments->baudrate = B2400  ; break;
-					case 4800   : arguments->baudrate = B4800  ; break;
-					case 9600   : arguments->baudrate = B9600  ; break;
-					case 19200  : arguments->baudrate = B19200 ; break;
-					case 38400  : arguments->baudrate = B38400 ; break;
-					case 57600  : arguments->baudrate = B57600 ; break;
-					case 115200 : arguments->baudrate = B115200; break;
-					default: printf("Baud rate %i is not supported.\n",baud_temp); exit(1);
+				switch (baud_temp) {
+					case 1200:
+						arguments->baudrate = B1200;
+						break;
+					case 2400:
+						arguments->baudrate = B2400;
+						break;
+					case 4800:
+						arguments->baudrate = B4800;
+						break;
+					case 9600:
+						arguments->baudrate = B9600;
+						break;
+					case 19200:
+						arguments->baudrate = B19200;
+						break;
+					case 38400:
+						arguments->baudrate = B38400;
+						break;
+					case 57600:
+						arguments->baudrate = B57600;
+						break;
+					case 115200:
+						arguments->baudrate = B115200;
+						break;
+					default:
+						printf("Baud rate %i is not supported.\n",baud_temp);
+						exit(1);
 				}
 
 		case ARGP_KEY_ARG:
@@ -122,6 +131,8 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
+static struct argp argp = { options, parse_opt, 0, doc };
+
 void arg_set_defaults(struct arguments *arguments)
 {
 	char *serialdevice_temp = "/dev/ttyUSB0";
@@ -134,17 +145,8 @@ void arg_set_defaults(struct arguments *arguments)
 	strncpy(arguments->name, name_tmp, MAX_DEV_STR_LEN);
 }
 
-const char *argp_program_version     = "ttymidi 0.60";
-const char *argp_program_bug_address = "tvst@hotmail.com";
-static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
-static struct argp argp = { options, parse_opt, 0, doc };
-static struct arguments arguments;
-
-
-
 /* --------------------------------------------------------------------- */
 // MIDI stuff
-
 int open_seq(snd_seq_t** seq) 
 {
 	int port_out_id;
@@ -163,6 +165,11 @@ int open_seq(snd_seq_t** seq)
 	}
 
 	return port_out_id;
+}
+
+void exit_cli(int sig) {
+	run = false;
+	printf("\rttymidi closing down ... ");
 }
 
 void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
@@ -192,7 +199,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	   buf[0] --> operation/channel
 	   buf[1] --> param1
 	   buf[2] --> param2        (param2 not transmitted on program change or key press)
-   */
+	 */
 
 	snd_seq_event_t ev;
 	snd_seq_ev_clear(&ev);
@@ -431,7 +438,6 @@ int main(int argc, char** argv)
 	 * read commands
 	 */
 
-	run = TRUE;
 	signal(SIGINT, exit_cli);
 	signal(SIGTERM, exit_cli);
 
