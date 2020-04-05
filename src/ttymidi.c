@@ -311,6 +311,7 @@ static inline bool is_comment(char buf[3])
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
 	char buf[3];
+	char msg[MAX_MSG_SIZE];
 	
 	if (arguments.printonly)
 		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
@@ -354,7 +355,6 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
 		if (is_comment(buf)) {
-			char msg[MAX_MSG_SIZE];
 			int msglen;
 
 			read(serial, buf, 1);
