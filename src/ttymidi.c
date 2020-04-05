@@ -34,9 +34,11 @@
 #define MAX_MSG_SIZE		1024
 
 struct arguments {
-	int  silent, verbose, printonly;
+	int silent;
+	int verbose;
+	int printonly;
+	int baudrate;
 	char serialdevice[MAX_DEV_STR_LEN];
-	int  baudrate;
 	char name[MAX_DEV_STR_LEN];
 };
 
@@ -51,8 +53,8 @@ static struct argp_option options[] = {
 };
 
 static bool run = true;
-int serial;
-int port_out_id;
+static int serial;
+static int port_out_id;
 const char *argp_program_version     = "ttymidi 0.60";
 static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 static struct arguments arguments;
@@ -135,11 +137,9 @@ static struct argp argp = { options, parse_opt, 0, doc };
 void arg_set_defaults(struct arguments *arguments)
 {
 	char *serialdevice_temp = "/dev/ttyUSB0";
-	arguments->printonly    = 0;
-	arguments->silent       = 0;
-	arguments->verbose      = 0;
-	arguments->baudrate     = B115200;
 	char *name_tmp		= (char *)"ttymidi";
+
+	arguments->baudrate     = B115200;
 	strncpy(arguments->serialdevice, serialdevice_temp, MAX_DEV_STR_LEN);
 	strncpy(arguments->name, name_tmp, MAX_DEV_STR_LEN);
 }
