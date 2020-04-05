@@ -254,7 +254,6 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 			break;
 
 		/* Not implementing system commands (0xF0) */
-			
 		default:
 			if (!arguments.silent) 
 				printf("0x%x Unknown MIDI cmd   %03u %03u %03u\n", operation, channel, param1, param2);
@@ -268,7 +267,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 void read_midi_from_serial_port(snd_seq_t* seq)
 {
 	char buf[3], msg[MAX_MSG_SIZE];
-	int i, msglen;
+	int msglen;
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly) {
@@ -292,7 +291,6 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 		/* 
 		 * so let's align to the beginning of a midi command.
 		 */
-
 		int i = 1;
 
 		while (i < 3) {
