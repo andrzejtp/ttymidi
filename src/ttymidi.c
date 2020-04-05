@@ -321,7 +321,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		}
 
 		/* let's start at the beginning of a midi command */
-		for (i = 1; i < 3; ) {
+		for (i = 1; ; ) {
 			read(serial, &buf[i], 1);
 
 			if (is_status(buf[i])) {
@@ -332,11 +332,11 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 				/* Data byte received */
 				if (i == 2) {
 					/* It was 2nd data byte so we have a MIDI event process! */
-					i = 3;
+					break;
 				} else {
 					/* Lets figure out are we done or should we read one more byte */
 					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0)
-						i = 3;
+						break;
 					else
 						i = 2;
 				}
