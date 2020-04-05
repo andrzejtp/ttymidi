@@ -359,8 +359,6 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 			read(serial, &buf[0], 1);
 			len = (unsigned char)buf[0];
-			if (len > MAX_MSG_SIZE - 1)
-				len = MAX_MSG_SIZE - 1;
 
 			read(serial, msg, len);
 
