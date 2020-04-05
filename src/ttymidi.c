@@ -53,12 +53,12 @@ static struct arguments {
 };
 
 static struct argp_option options[] = {
-	{"serialdevice" , 's', "DEV" , 0, "Serial device to use. Default = /dev/ttyUSB0" },
+	{"serialdevice" , 's', "DEV" , 0, "Serial device to use. Default = " DEFAULT_SERIAL },
 	{"baudrate"     , 'b', "BAUD", 0, "Serial port baud rate. Default = 115200" },
 	{"verbose"      , 'v', 0     , 0, "For debugging: Produce verbose output" },
 	{"printonly"    , 'p', 0     , 0, "Super debugging: Print values read from serial -- and do nothing else" },
 	{"quiet"        , 'q', 0     , 0, "Don't produce any output, even when the print command is sent" },
-	{"name"		, 'n', "NAME", 0, "Name of the Alsa MIDI client. Default = ttymidi" },
+	{"name"		, 'n', "NAME", 0, "Name of the Alsa MIDI client. Default = " DEFAULT_NAME },
 	{ 0 }
 };
 
