@@ -151,7 +151,7 @@ static int open_seq(snd_seq_t** seq)
 
 	if (snd_seq_open(seq, "default", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
 		fprintf(stderr, "Error opening ALSA sequencer.\n");
-		exit(1);
+		return -1;
 	}
 
 	snd_seq_set_client_name(*seq, arguments.name);
