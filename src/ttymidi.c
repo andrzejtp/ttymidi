@@ -301,7 +301,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
 	else /* Lets first fast forward to first status byte... */
 		do
-			read(serial, buf, 1);
+			read(serial, &buf[0], 1);
 		while (buf[0] >> 7 == 0);
 
 	while (run) {
@@ -309,7 +309,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 		/* super-debug mode: only print to screen whatever comes through the serial port */
 		if (arguments.printonly) {
-			read(serial, buf, 1);
+			read(serial, &buf[0], 1);
 			printf("%x\t", (int)buf[0] & 0xFF);
 			fflush(stdout);
 			continue;
@@ -317,7 +317,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 		/* let's start at the beginning of a midi command */
 		for (i = 1; i < 3; ) {
-			read(serial, buf + i, 1);
+			read(serial, &buf[i], 1);
 
 			if (buf[i] >> 7 != 0) {
 				/* Status byte received and will always be first bit! */
