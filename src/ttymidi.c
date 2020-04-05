@@ -357,7 +357,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		if (is_comment(buf)) {
 			int len;
 
-			read(serial, buf, 1);
+			read(serial, &buf[0], 1);
 			len = buf[0];
 			if (len > MAX_MSG_SIZE - 1)
 				len = MAX_MSG_SIZE - 1;
