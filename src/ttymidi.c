@@ -303,6 +303,11 @@ static inline bool has_single_param(char buf)
 	return (buf & 0xF0) == MIDI_PROGRAM_CHANGE || (buf & 0xF0) == MIDI_MONO_KEY_PRESSURE;
 }
 
+static inline bool is_comment(char buf[3])
+{
+	return buf[0] == (char)0xFF && buf[1] == (char)0x00 && buf[2] == (char)0x00;
+}
+
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
 	char buf[3];
@@ -348,7 +353,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		}
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
-		if (buf[0] == (char)0xFF && buf[1] == (char)0x00 && buf[2] == (char)0x00) {
+		if (is_comment(buf)) {
 			char msg[MAX_MSG_SIZE];
 			int msglen;
 
