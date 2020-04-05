@@ -140,7 +140,7 @@ static struct argp argp = {
 	.doc = doc,
 };
 
-int open_seq(snd_seq_t** seq) 
+static int open_seq(snd_seq_t** seq)
 {
 	int port_out_id;
 
@@ -160,12 +160,12 @@ int open_seq(snd_seq_t** seq)
 	return port_out_id;
 }
 
-void exit_cli(int sig) {
+static void exit_cli(int sig) {
 	run = false;
 	printf("\rttymidi closing down ... ");
 }
 
-void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
+static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 {
 	/*
 	   MIDI COMMANDS
@@ -262,7 +262,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	snd_seq_drain_output(seq);
 }
 
-void read_midi_from_serial_port(snd_seq_t* seq)
+static void read_midi_from_serial_port(snd_seq_t* seq)
 {
 	char buf[3], msg[MAX_MSG_SIZE];
 	int msglen;
