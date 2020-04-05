@@ -25,21 +25,26 @@
 #include <argp.h>
 #include <alsa/asoundlib.h>
 #include <signal.h>
-// Linux-specific
 #include <linux/serial.h>
 #include <linux/ioctl.h>
 #include <asm/ioctls.h>
 
 #define MAX_DEV_STR_LEN		32
+#define DEFAULT_SERIAL		"/dev/ttyUSB0"
+#define DEFAULT_NAME		"ttymidi"
 #define MAX_MSG_SIZE		1024
 
-struct arguments {
+static struct arguments {
 	int silent;
 	int verbose;
 	int printonly;
 	int baudrate;
 	char serialdevice[MAX_DEV_STR_LEN];
 	char name[MAX_DEV_STR_LEN];
+} arguments = {
+	.baudrate = B115200,
+	.serialdevice = DEFAULT_SERIAL,
+	.name = DEFAULT_NAME,
 };
 
 static struct argp_option options[] = {
@@ -56,7 +61,6 @@ static bool run = true;
 static int serial;
 static int port_out_id;
 static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
-static struct arguments arguments;
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
@@ -132,16 +136,6 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 }
 
 static struct argp argp = { options, parse_opt, 0, doc };
-
-void arg_set_defaults(struct arguments *arguments)
-{
-	char *serialdevice_temp = "/dev/ttyUSB0";
-	char *name_tmp		= (char *)"ttymidi";
-
-	arguments->baudrate     = B115200;
-	strncpy(arguments->serialdevice, serialdevice_temp, MAX_DEV_STR_LEN);
-	strncpy(arguments->name, name_tmp, MAX_DEV_STR_LEN);
-}
 
 /* --------------------------------------------------------------------- */
 // MIDI stuff
@@ -357,7 +351,6 @@ int main(int argc, char** argv)
 	struct serial_struct ser_info;
 	snd_seq_t *seq;
 
-	arg_set_defaults(&arguments);
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
 	/*
