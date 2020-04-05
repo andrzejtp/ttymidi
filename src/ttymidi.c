@@ -30,6 +30,13 @@
 #define MAX_DEV_STR_LEN		32
 #define DEFAULT_SERIAL		"/dev/ttyUSB0"
 #define DEFAULT_NAME		"ttymidi"
+#define MIDI_NOTE_OFF		0x80
+#define MIDI_NOTE_ON		0x90
+#define MIDI_POLY_KEY_PRESSURE	0xA0
+#define MIDI_CONTROL_CHANGE	0xB0
+#define MIDI_PROGRAM_CHANGE	0xC0
+#define MIDI_MONO_KEY_PRESSURE	0xD0
+#define MIDI_PITCH_BEND		0xE0
 #define MAX_MSG_SIZE		1024
 
 static struct arguments {
@@ -232,43 +239,43 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	param2 = buf[2];
 
 	switch (operation) {
-		case 0x80:
+		case MIDI_NOTE_OFF:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Note off           %03u %03u %03u\n", operation, channel, param1, param2);
 			snd_seq_ev_set_noteoff(&ev, channel, param1, param2);
 			break;
 			
-		case 0x90:
+		case MIDI_NOTE_ON:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Note on            %03u %03u %03u\n", operation, channel, param1, param2);
 			snd_seq_ev_set_noteon(&ev, channel, param1, param2);
 			break;
 			
-		case 0xA0:
+		case MIDI_POLY_KEY_PRESSURE:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Pressure change    %03u %03u %03u\n", operation, channel, param1, param2);
 			snd_seq_ev_set_keypress(&ev, channel, param1, param2);
 			break;
 
-		case 0xB0:
+		case MIDI_CONTROL_CHANGE:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Controller change  %03u %03u %03u\n", operation, channel, param1, param2);
 			snd_seq_ev_set_controller(&ev, channel, param1, param2);
 			break;
 
-		case 0xC0:
+		case MIDI_PROGRAM_CHANGE:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Program change     %03u %03u\n", operation, channel, param1);
 			snd_seq_ev_set_pgmchange(&ev, channel, param1);
 			break;
 
-		case 0xD0:
+		case MIDI_MONO_KEY_PRESSURE:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Channel change     %03u %03u\n", operation, channel, param1);
 			snd_seq_ev_set_chanpress(&ev, channel, param1);
 			break;
 
-		case 0xE0:
+		case MIDI_PITCH_BEND:
 			param1 = (param1 & 0x7F) + ((param2 & 0x7F) << 7);
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Pitch bend         %03u %05i\n", operation, channel, param1);
