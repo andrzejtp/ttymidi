@@ -329,16 +329,15 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 				buf[0] = buf[i];
 				i = 1;
 			} else {
-				/* Data byte received */
-				if (i == 2) {
-					/* It was 2nd data byte so we have a MIDI event process! */
-					break;
-				} else {
+				if (i == 1) {
 					/* Lets figure out are we done or should we read one more byte */
 					if ((buf[0] & 0xF0) == 0xC0 || (buf[0] & 0xF0) == 0xD0)
 						break;
 					else
 						i = 2;
+				} else {
+					/* It was 2nd data byte so we have a complete MIDI event! */
+					break;
 				}
 			}
 		}
