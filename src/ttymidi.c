@@ -55,7 +55,6 @@ static struct argp_option options[] = {
 static bool run = true;
 static int serial;
 static int port_out_id;
-const char *argp_program_version     = "ttymidi 0.60";
 static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 static struct arguments arguments;
 
