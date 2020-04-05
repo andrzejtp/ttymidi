@@ -26,7 +26,6 @@
 #include <argp.h>
 #include <alsa/asoundlib.h>
 #include <signal.h>
-#include <pthread.h>
 // Linux-specific
 #include <linux/serial.h>
 #include <linux/ioctl.h>
@@ -152,7 +151,7 @@ arguments_t arguments;
 
 int open_seq(snd_seq_t** seq) 
 {
-	int port_out_id, port_in_id; // actually port_in_id is not needed nor used anywhere
+	int port_out_id;
 
 	if (snd_seq_open(seq, "default", SND_SEQ_OPEN_DUPLEX, 0) < 0) 
 	{
@@ -164,13 +163,6 @@ int open_seq(snd_seq_t** seq)
 
 	if ((port_out_id = snd_seq_create_simple_port(*seq, "MIDI out",
 					SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-					SND_SEQ_PORT_TYPE_APPLICATION)) < 0) 
-	{
-		fprintf(stderr, "Error creating sequencer port.\n");
-	}
-
-	if ((port_in_id = snd_seq_create_simple_port(*seq, "MIDI in",
-					SND_SEQ_PORT_CAP_WRITE|SND_SEQ_PORT_CAP_SUBS_WRITE,
 					SND_SEQ_PORT_TYPE_APPLICATION)) < 0) 
 	{
 		fprintf(stderr, "Error creating sequencer port.\n");
@@ -278,125 +270,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	snd_seq_drain_output(seq);
 }
 
-void write_midi_action_to_serial_port(snd_seq_t* seq_handle) 
-{
-	snd_seq_event_t* ev;
-	char bytes[] = {0x00, 0x00, 0xFF}; 
-
-	do 
-	{
-		snd_seq_event_input(seq_handle, &ev);
-
-		switch (ev->type) 
-		{
-
-			case SND_SEQ_EVENT_NOTEOFF: 
-				bytes[0] = 0x80 + ev->data.control.channel;
-				bytes[1] = ev->data.note.note;
-				bytes[2] = ev->data.note.velocity;        
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Note off           %03u %03u %03u\n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1], bytes[2]); 
-				break; 
-
-			case SND_SEQ_EVENT_NOTEON:
-				bytes[0] = 0x90 + ev->data.control.channel;
-				bytes[1] = ev->data.note.note;
-				bytes[2] = ev->data.note.velocity;        
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Note on            %03u %03u %03u\n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1], bytes[2]); 
-				break;        
-
-			case SND_SEQ_EVENT_KEYPRESS: 
-				bytes[0] = 0x90 + ev->data.control.channel;
-				bytes[1] = ev->data.note.note;
-				bytes[2] = ev->data.note.velocity;        
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Pressure change    %03u %03u %03u\n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1], bytes[2]); 
-				break;       
-
-			case SND_SEQ_EVENT_CONTROLLER: 
-				bytes[0] = 0xB0 + ev->data.control.channel;
-				bytes[1] = ev->data.control.param;
-				bytes[2] = ev->data.control.value;
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Controller change  %03u %03u %03u\n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1], bytes[2]); 
-				break;   
-
-			case SND_SEQ_EVENT_PGMCHANGE: 
-				bytes[0] = 0xC0 + ev->data.control.channel;
-				bytes[1] = ev->data.control.value;
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Program change     %03u %03u \n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1]); 
-				break;  
-
-			case SND_SEQ_EVENT_CHANPRESS: 
-				bytes[0] = 0xD0 + ev->data.control.channel;
-				bytes[1] = ev->data.control.value;
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Channel change     %03u %03u \n", bytes[0]&0xF0, bytes[0]&0xF, bytes[1]); 
-				break;  
-
-			case SND_SEQ_EVENT_PITCHBEND:
-				bytes[0] = 0xE0 + ev->data.control.channel;
-				ev->data.control.value += 8192;
-				bytes[1] = (int)ev->data.control.value & 0x7F;
-				bytes[2] = (int)ev->data.control.value >> 7;
-				if (!arguments.silent && arguments.verbose) 
-					printf("Alsa    0x%x Pitch bend         %03u %5d\n", bytes[0]&0xF0, bytes[0]&0xF, ev->data.control.value);
-				break;
-
-			default:
-				break;
-		}
-
-    bytes[1] = (bytes[1] & 0x7F);
-
-    switch (ev->type) 
-		{
-      case SND_SEQ_EVENT_NOTEOFF:
-      case SND_SEQ_EVENT_NOTEON:
-      case SND_SEQ_EVENT_KEYPRESS: 
-      case SND_SEQ_EVENT_CONTROLLER: 
-      case SND_SEQ_EVENT_PITCHBEND:
-        bytes[2] = (bytes[2] & 0x7F);
-				write(serial, bytes, 3);
-        break;
-      case SND_SEQ_EVENT_PGMCHANGE: 
-      case SND_SEQ_EVENT_CHANPRESS:
-        write(serial, bytes, 2);
-        break;
-    }
-
-		snd_seq_free_event(ev);
-
-	} while (snd_seq_event_input_pending(seq_handle, 0) > 0);
-}
-
-
-void* read_midi_from_alsa(void* seq) 
-{
-	int npfd;
-	struct pollfd* pfd;
-	snd_seq_t* seq_handle;
-
-	seq_handle = seq;
-
-	npfd = snd_seq_poll_descriptors_count(seq_handle, POLLIN);
-	pfd = (struct pollfd*) alloca(npfd * sizeof(struct pollfd));
-	snd_seq_poll_descriptors(seq_handle, pfd, npfd, POLLIN);	
-
-	while (run) 
-	{
-		if (poll(pfd,npfd, 100) > 0) 
-		{
-			write_midi_action_to_serial_port(seq_handle);
-		}
-	}	
-
-	printf("\nStopping [PC]->[Hardware] communication...");
-}
-
-void* read_midi_from_serial_port(void* seq) 
+void read_midi_from_serial_port(snd_seq_t* seq)
 {
 	char buf[3], msg[MAX_MSG_SIZE];
 	int i, msglen;
@@ -481,7 +355,7 @@ void* read_midi_from_serial_port(void* seq)
 /* --------------------------------------------------------------------- */
 // Main program
 
-main(int argc, char** argv)
+int main(int argc, char** argv)
 {
 	//arguments arguments;
 	struct termios oldtio, newtio;
@@ -570,25 +444,11 @@ main(int argc, char** argv)
 	 * read commands
 	 */
 
-	/* Starting thread that is polling alsa midi in port */
-	pthread_t midi_out_thread, midi_in_thread;
-	int iret1, iret2;
 	run = TRUE;
-	iret1 = pthread_create(&midi_out_thread, NULL, read_midi_from_alsa, (void*) seq);
-	/* And also thread for polling serial data. As serial is currently read in
-           blocking mode, by this we can enable ctrl+c quiting and avoid zombie
-           alsa ports when killing app with ctrl+z */
-	iret2 = pthread_create(&midi_in_thread, NULL, read_midi_from_serial_port, (void*) seq);
 	signal(SIGINT, exit_cli);
 	signal(SIGTERM, exit_cli);
 
-	while (run)
-	{   
-		sleep(100);
-	}
-
-	void* status;
-	pthread_join(midi_out_thread, &status);
+	read_midi_from_serial_port(seq);
 
 	/* restore the old port settings */
 	tcsetattr(serial, TCSANOW, &oldtio);
