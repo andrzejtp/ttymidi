@@ -140,7 +140,7 @@ static struct argp argp = {
 
 static int open_seq(snd_seq_t** seq)
 {
-	int port_out_id;
+	int port_id;
 
 	if (snd_seq_open(seq, "default", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
 		fprintf(stderr, "Error opening ALSA sequencer.\n");
@@ -149,13 +149,12 @@ static int open_seq(snd_seq_t** seq)
 
 	snd_seq_set_client_name(*seq, arguments.name);
 
-	if ((port_out_id = snd_seq_create_simple_port(*seq, "MIDI out",
-						      SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-						      SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
+	if ((port_id = snd_seq_create_simple_port(*seq, "MIDI out",
+						  SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
+						  SND_SEQ_PORT_TYPE_APPLICATION)) < 0)
 		fprintf(stderr, "Error creating sequencer port.\n");
-	}
 
-	return port_out_id;
+	return port_id;
 }
 
 static void build_midi_termios(struct termios *newtio)
@@ -193,6 +192,14 @@ static void exit_cli(int sig) {
 
 static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 {
+	snd_seq_event_t ev;
+	int operation, channel, param1, param2;
+
+	snd_seq_ev_clear(&ev);
+	snd_seq_ev_set_direct(&ev);
+	snd_seq_ev_set_source(&ev, port_out_id);
+	snd_seq_ev_set_subs(&ev);
+
 	/*
 	   MIDI COMMANDS
 	   -------------------------------------------------------------------
@@ -219,19 +226,10 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	   buf[1] --> param1
 	   buf[2] --> param2        (param2 not transmitted on program change or key press)
 	 */
-
-	snd_seq_event_t ev;
-	snd_seq_ev_clear(&ev);
-	snd_seq_ev_set_direct(&ev);
-	snd_seq_ev_set_source(&ev, port_out_id);
-	snd_seq_ev_set_subs(&ev);
-
-	int operation, channel, param1, param2;
-
 	operation = buf[0] & 0xF0;
-	channel   = buf[0] & 0x0F;
-	param1    = buf[1];
-	param2    = buf[2];
+	channel = buf[0] & 0x0F;
+	param1 = buf[1];
+	param2 = buf[2];
 
 	switch (operation) {
 		case 0x80:
@@ -290,8 +288,7 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
-	char buf[3], msg[MAX_MSG_SIZE];
-	int msglen;
+	char buf[3];
 	
 	/* Lets first fast forward to first status byte... */
 	if (!arguments.printonly)
@@ -300,22 +297,16 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		while (buf[0] >> 7 == 0);
 
 	while (run) {
-		/* 
-		 * super-debug mode: only print to screen whatever
-		 * comes through the serial port.
-		 */
+		/* let's align to the beginning of a midi command. */
+		int i = 1;
 
+		/* super-debug mode: only print to screen whatever comes through the serial port. */
 		if (arguments.printonly) {
 			read(serial, buf, 1);
 			printf("%x\t", (int) buf[0]&0xFF);
 			fflush(stdout);
 			continue;
 		}
-
-		/* 
-		 * so let's align to the beginning of a midi command.
-		 */
-		int i = 1;
 
 		while (i < 3) {
 			read(serial, buf+i, 1);
@@ -337,11 +328,13 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 						i = 2;
 				}
 			}
-
 		}
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
 		if (buf[0] == (char)0xFF && buf[1] == (char)0x00 && buf[2] == (char)0x00) {
+			char msg[MAX_MSG_SIZE];
+			int msglen;
+
 			read(serial, buf, 1);
 			msglen = buf[0];
 			if (msglen > MAX_MSG_SIZE-1)
@@ -370,12 +363,11 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 int main(int argc, char** argv)
 {
-	static struct termios newtio;
 	struct termios oldtio;
+	static struct termios newtio;
+	snd_seq_t *seq;
 	int port_out_id;
 	int serial;
-
-	snd_seq_t *seq;
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
