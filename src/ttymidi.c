@@ -293,6 +293,11 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	snd_seq_drain_output(seq);
 }
 
+static inline bool is_status(char buf)
+{
+	return buf >> 7 != 0;
+}
+
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
 	char buf[3];
@@ -302,7 +307,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 	else /* Lets first fast forward to first status byte... */
 		do
 			read(serial, &buf[0], 1);
-		while (buf[0] >> 7 == 0);
+		while (!is_status(buf[0]));
 
 	while (run) {
 		int i;
@@ -319,7 +324,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		for (i = 1; i < 3; ) {
 			read(serial, &buf[i], 1);
 
-			if (buf[i] >> 7 != 0) {
+			if (is_status(buf[i])) {
 				/* Status byte received and will always be first bit! */
 				buf[0] = buf[i];
 				i = 1;
