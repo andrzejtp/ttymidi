@@ -290,8 +290,9 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 {
 	char buf[3];
 	
-	/* Lets first fast forward to first status byte... */
-	if (!arguments.printonly)
+	if (arguments.printonly)
+		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
+	else /* Lets first fast forward to first status byte... */
 		do
 			read(serial, buf, 1);
 		while (buf[0] >> 7 == 0);
@@ -404,9 +405,6 @@ int main(int argc, char** argv)
 		ioctl(serial, TIOCSSERIAL, &ser_info);
 	}
 #endif
-
-	if (arguments.printonly) 
-		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
 
 	signal(SIGINT, exit_cli);
 	signal(SIGTERM, exit_cli);
