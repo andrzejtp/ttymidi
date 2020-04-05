@@ -298,6 +298,11 @@ static inline bool is_status(char buf)
 	return buf >> 7 != 0;
 }
 
+static inline bool has_single_param(char buf)
+{
+	return (buf & 0xF0) == MIDI_PROGRAM_CHANGE || (buf & 0xF0) == MIDI_MONO_KEY_PRESSURE;
+}
+
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
 	char buf[3];
@@ -331,7 +336,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 			} else {
 				if (i == 1) {
 					/* Lets figure out are we done or should we read one more byte */
-					if ((buf[0] & 0xF0) == MIDI_PROGRAM_CHANGE || (buf[0] & 0xF0) == MIDI_MONO_KEY_PRESSURE)
+					if (has_single_param(buf[0]))
 						break;
 					else
 						i = 2;
