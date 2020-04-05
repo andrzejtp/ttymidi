@@ -375,9 +375,6 @@ int main(int argc, char** argv)
 	int port_out_id;
 	int serial;
 
-#if 0
-	struct serial_struct ser_info;
-#endif
 	snd_seq_t *seq;
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
@@ -405,10 +402,13 @@ int main(int argc, char** argv)
 	tcsetattr(serial, TCSANOW, &newtio);
 
 #if 0
-	/* Linux-specific: enable low latency mode (FTDI "nagling off") */
-	ioctl(serial, TIOCGSERIAL, &ser_info);
-	ser_info.flags |= ASYNC_LOW_LATENCY;
-	ioctl(serial, TIOCSSERIAL, &ser_info);
+	{
+		struct serial_struct ser_info;
+		/* Linux-specific: enable low latency mode (FTDI "nagling off") */
+		ioctl(serial, TIOCGSERIAL, &ser_info);
+		ser_info.flags |= ASYNC_LOW_LATENCY;
+		ioctl(serial, TIOCSSERIAL, &ser_info);
+	}
 #endif
 
 	if (arguments.printonly) 
