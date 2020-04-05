@@ -184,7 +184,7 @@ static void build_midi_termios(struct termios *newtio)
 	 * ICANON  : enable canonical input
 	 * disable all echo functionality, and don't send signals to calling program
 	 */
-	newtio->c_lflag = 0; // non-canonical
+	newtio->c_lflag = 0; /* non-canonical */
 
 	/* set up: we'll be reading 4 bytes at a time */
 	newtio->c_cc[VTIME] = 0;	/* inter-character timer unused */
@@ -279,7 +279,7 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 			param1 = (param1 & 0x7F) + ((param2 & 0x7F) << 7);
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Pitch bend         %03u %05i\n", operation, channel, param1);
-			snd_seq_ev_set_pitchbend(&ev, channel, param1 - 8192); // in alsa MIDI we want signed int
+			snd_seq_ev_set_pitchbend(&ev, channel, param1 - 8192); /* in alsa MIDI we want signed int */
 			break;
 
 		/* Not implementing system commands (0xF0) */
@@ -365,9 +365,6 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		}
 	}
 }
-
-/* --------------------------------------------------------------------- */
-// Main program
 
 int main(int argc, char** argv)
 {
