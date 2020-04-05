@@ -160,6 +160,34 @@ static int open_seq(snd_seq_t** seq)
 	return port_out_id;
 }
 
+static void build_midi_termios(struct termios *newtio)
+{
+	/*
+	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed.
+	 * CS8      : 8n1 (8bit, no parity, 1 stopbit)
+	 * CLOCAL   : local connection, no modem contol
+	 * CREAD    : enable receiving characters
+	 */
+	newtio->c_cflag = arguments.baudrate | CS8 | CLOCAL | CREAD;
+
+	/* IGNPAR  : ignore bytes with parity errors */
+	newtio->c_iflag = IGNPAR;
+
+	/* Raw output */
+	newtio->c_oflag = 0;
+
+	/*
+	 * ICANON  : enable canonical input
+	 * disable all echo functionality, and don't send signals to calling program
+	 */
+	newtio->c_lflag = 0; // non-canonical
+
+	/* set up: we'll be reading 4 bytes at a time. */
+	newtio->c_cc[VTIME] = 0;	/* inter-character timer unused */
+	newtio->c_cc[VMIN] = 1;		/* blocking read until n character arrives */
+
+}
+
 static void exit_cli(int sig) {
 	run = false;
 	printf("\rttymidi closing down ... ");
@@ -369,31 +397,7 @@ int main(int argc, char** argv)
 	/* save current serial port settings */
 	tcgetattr(serial, &oldtio); 
 
-	/* 
-	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed.
-	 * CS8      : 8n1 (8bit, no parity, 1 stopbit)
-	 * CLOCAL   : local connection, no modem contol
-	 * CREAD    : enable receiving characters
-	 */
-	newtio.c_cflag = arguments.baudrate | CS8 | CLOCAL | CREAD;
-
-	/* IGNPAR  : ignore bytes with parity errors */
-	newtio.c_iflag = IGNPAR;
-
-	/* Raw output */
-	newtio.c_oflag = 0;
-
-	/*
-	 * ICANON  : enable canonical input
-	 * disable all echo functionality, and don't send signals to calling program
-	 */
-	newtio.c_lflag = 0; // non-canonical
-
-	/* 
-	 * set up: we'll be reading 4 bytes at a time.
-	 */
-	newtio.c_cc[VTIME] = 0;	/* inter-character timer unused */
-	newtio.c_cc[VMIN] = 1;	/* blocking read until n character arrives */
+	build_midi_termios(&newtio);
 
 	/* now clean the modem line and activate the settings for the port */
 	tcflush(serial, TCIFLUSH);
