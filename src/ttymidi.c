@@ -47,8 +47,7 @@ int port_out_id;
 /* --------------------------------------------------------------------- */
 // Program options
 
-static struct argp_option options[] = 
-{
+static struct argp_option options[] = {
 	{"serialdevice" , 's', "DEV" , 0, "Serial device to use. Default = /dev/ttyUSB0" },
 	{"baudrate"     , 'b', "BAUD", 0, "Serial port baud rate. Default = 115200" },
 	{"verbose"      , 'v', 0     , 0, "For debugging: Produce verbose output" },
@@ -58,29 +57,26 @@ static struct argp_option options[] =
 	{ 0 }
 };
 
-typedef struct _arguments
-{
+struct arguments {
 	int  silent, verbose, printonly;
 	char serialdevice[MAX_DEV_STR_LEN];
 	int  baudrate;
 	char name[MAX_DEV_STR_LEN];
-} arguments_t;
+};
 
-void exit_cli(int sig)
-{
+void exit_cli(int sig) {
 	run = FALSE;
 	printf("\rttymidi closing down ... ");
 }
 
-static error_t parse_opt (int key, char *arg, struct argp_state *state)
+static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
 	/* Get the input argument from argp_parse, which we
 	   know is a pointer to our arguments structure. */
-	arguments_t *arguments = state->input;
+	struct arguments *arguments = state->input;
 	int baud_temp;
 
-	switch (key)
-	{
+	switch (key) {
 		case 'p':
 			arguments->printonly = 1;
 			break;
@@ -126,7 +122,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 	return 0;
 }
 
-void arg_set_defaults(arguments_t *arguments)
+void arg_set_defaults(struct arguments *arguments)
 {
 	char *serialdevice_temp = "/dev/ttyUSB0";
 	arguments->printonly    = 0;
@@ -142,7 +138,7 @@ const char *argp_program_version     = "ttymidi 0.60";
 const char *argp_program_bug_address = "tvst@hotmail.com";
 static char doc[]       = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 static struct argp argp = { options, parse_opt, 0, doc };
-arguments_t arguments;
+static struct arguments arguments;
 
 
 
@@ -153,8 +149,7 @@ int open_seq(snd_seq_t** seq)
 {
 	int port_out_id;
 
-	if (snd_seq_open(seq, "default", SND_SEQ_OPEN_DUPLEX, 0) < 0) 
-	{
+	if (snd_seq_open(seq, "default", SND_SEQ_OPEN_DUPLEX, 0) < 0) {
 		fprintf(stderr, "Error opening ALSA sequencer.\n");
 		exit(1);
 	}
@@ -162,9 +157,8 @@ int open_seq(snd_seq_t** seq)
 	snd_seq_set_client_name(*seq, arguments.name);
 
 	if ((port_out_id = snd_seq_create_simple_port(*seq, "MIDI out",
-					SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
-					SND_SEQ_PORT_TYPE_APPLICATION)) < 0) 
-	{
+						      SND_SEQ_PORT_CAP_READ|SND_SEQ_PORT_CAP_SUBS_READ,
+						      SND_SEQ_PORT_TYPE_APPLICATION)) < 0) {
 		fprintf(stderr, "Error creating sequencer port.\n");
 	}
 
@@ -213,8 +207,7 @@ void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	param1    = buf[1];
 	param2    = buf[2];
 
-	switch (operation)
-	{
+	switch (operation) {
 		case 0x80:
 			if (!arguments.silent && arguments.verbose) 
 				printf("Serial  0x%x Note off           %03u %03u %03u\n", operation, channel, param1, param2);
@@ -281,15 +274,13 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 		while (buf[0] >> 7 == 0);
 	}
 
-	while (run) 
-	{
+	while (run) {
 		/* 
 		 * super-debug mode: only print to screen whatever
 		 * comes through the serial port.
 		 */
 
-		if (arguments.printonly) 
-		{
+		if (arguments.printonly) {
 			read(serial, buf, 1);
 			printf("%x\t", (int) buf[0]&0xFF);
 			fflush(stdout);
@@ -328,8 +319,7 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 		}
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
-		if (buf[0] == (char) 0xFF && buf[1] == (char) 0x00 && buf[2] == (char) 0x00)
-		{
+		if (buf[0] == (char) 0xFF && buf[1] == (char) 0x00 && buf[2] == (char) 0x00) {
 			read(serial, buf, 1);
 			msglen = buf[0];
 			if (msglen > MAX_MSG_SIZE-1) msglen = MAX_MSG_SIZE-1;
@@ -379,8 +369,7 @@ int main(int argc, char** argv)
 	
 	serial = open(arguments.serialdevice, O_RDWR | O_NOCTTY ); 
 
-	if (serial < 0) 
-	{
+	if (serial < 0) {
 		perror(arguments.serialdevice); 
 		exit(-1); 
 	}
@@ -436,9 +425,7 @@ int main(int argc, char** argv)
 //	ioctl(serial, TIOCSSERIAL, &ser_info);
 
 	if (arguments.printonly) 
-	{
 		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
-	}
 
 	/* 
 	 * read commands
