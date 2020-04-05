@@ -355,20 +355,20 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 		/* print comment message (the ones that start with 0xFF 0x00 0x00 */
 		if (is_comment(buf)) {
-			int msglen;
+			int len;
 
 			read(serial, buf, 1);
-			msglen = buf[0];
-			if (msglen > MAX_MSG_SIZE - 1)
-				msglen = MAX_MSG_SIZE - 1;
+			len = buf[0];
+			if (len > MAX_MSG_SIZE - 1)
+				len = MAX_MSG_SIZE - 1;
 
-			read(serial, msg, msglen);
+			read(serial, msg, len);
 
 			if (arguments.silent)
 				continue;
 
 			/* make sure the string ends with a null character */
-			msg[msglen] = 0;
+			msg[len] = 0;
 
 			puts("0xFF Non-MIDI message: ");
 			puts(msg);
