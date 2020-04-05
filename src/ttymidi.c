@@ -392,13 +392,22 @@ int main(int argc, char** argv)
 	}
 
 	/* save current serial port settings */
-	tcgetattr(serial, &oldtio); 
+	if (tcgetattr(serial, &oldtio)) {
+		perror("tcgetattr");
+		exit(-1);
+	}
 
 	build_midi_termios(&newtio);
 
 	/* now clean the modem line and activate the settings for the port */
-	tcflush(serial, TCIFLUSH);
-	tcsetattr(serial, TCSANOW, &newtio);
+	if (tcflush(serial, TCIFLUSH)) {
+		perror("tcflush");
+		exit(-1);
+	}
+	if (tcsetattr(serial, TCSANOW, &newtio)) {
+		perror("tcsetattr");
+		exit(-1);
+	}
 
 #if 0
 	{
@@ -410,13 +419,22 @@ int main(int argc, char** argv)
 	}
 #endif
 
-	signal(SIGINT, exit_cli);
-	signal(SIGTERM, exit_cli);
+	if (signal(SIGINT, exit_cli) == SIG_ERR) {
+		perror("signal");
+		exit(-1);
+	}
+	if (signal(SIGTERM, exit_cli) == SIG_ERR) {
+		perror("signal");
+		exit(-1);
+	}
 
 	read_midi_from_serial_port(seq, port_out_id, serial);
 
 	/* restore the old port settings */
-	tcsetattr(serial, TCSANOW, &oldtio);
+	if (tcsetattr(serial, TCSANOW, &oldtio)) {
+		perror("tcsetattr");
+		exit(-1);
+	}
+
 	printf("\ndone!\n");
 }
-
