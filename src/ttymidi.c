@@ -344,7 +344,8 @@ void read_midi_from_serial_port(snd_seq_t* seq)
 
 int main(int argc, char** argv)
 {
-	struct termios oldtio, newtio;
+	static struct termios newtio;
+	struct termios oldtio;
 #if 0
 	struct serial_struct ser_info;
 #endif
@@ -367,9 +368,6 @@ int main(int argc, char** argv)
 
 	/* save current serial port settings */
 	tcgetattr(serial, &oldtio); 
-
-	/* clear struct for new port settings */
-	bzero(&newtio, sizeof(newtio)); 
 
 	/* 
 	 * BAUDRATE : Set bps rate. You could also use cfsetispeed and cfsetospeed.
