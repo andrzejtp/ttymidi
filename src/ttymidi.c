@@ -58,7 +58,6 @@ static struct argp_option options[] = {
 static char doc[] = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 
 static bool run = true;
-static int port_out_id;
 static int serial;
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
@@ -290,7 +289,7 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 	snd_seq_drain_output(seq);
 }
 
-static void read_midi_from_serial_port(snd_seq_t* seq)
+static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id)
 {
 	char buf[3], msg[MAX_MSG_SIZE];
 	int msglen;
@@ -374,6 +373,8 @@ int main(int argc, char** argv)
 {
 	static struct termios newtio;
 	struct termios oldtio;
+	int port_out_id;
+
 #if 0
 	struct serial_struct ser_info;
 #endif
@@ -416,7 +417,7 @@ int main(int argc, char** argv)
 	signal(SIGINT, exit_cli);
 	signal(SIGTERM, exit_cli);
 
-	read_midi_from_serial_port(seq);
+	read_midi_from_serial_port(seq, port_out_id);
 
 	/* restore the old port settings */
 	tcsetattr(serial, TCSANOW, &oldtio);
