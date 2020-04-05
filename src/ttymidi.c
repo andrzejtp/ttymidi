@@ -200,6 +200,7 @@ static void exit_cli(int sig) {
 
 static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 {
+#define verbose_print(fmt, ...) if (!arguments.silent && arguments.verbose) printf(fmt, __VA_ARGS__)
 	snd_seq_event_t ev;
 	int operation, channel, param1, param2;
 
@@ -241,52 +242,45 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 
 	switch (operation) {
 		case MIDI_NOTE_OFF:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Note off           %03u %03u %03u\n",
-					operation, channel, param1, param2);
+			verbose_print("Serial  0x%x Note off           %03u %03u %03u\n",
+				      operation, channel, param1, param2);
 			snd_seq_ev_set_noteoff(&ev, channel, param1, param2);
 			break;
 			
 		case MIDI_NOTE_ON:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Note on            %03u %03u %03u\n",
-					operation, channel, param1, param2);
+			verbose_print("Serial  0x%x Note on            %03u %03u %03u\n",
+				      operation, channel, param1, param2);
 			snd_seq_ev_set_noteon(&ev, channel, param1, param2);
 			break;
 			
 		case MIDI_POLY_KEY_PRESSURE:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Pressure change    %03u %03u %03u\n",
-					operation, channel, param1, param2);
+			verbose_print("Serial  0x%x Pressure change    %03u %03u %03u\n",
+				      operation, channel, param1, param2);
 			snd_seq_ev_set_keypress(&ev, channel, param1, param2);
 			break;
 
 		case MIDI_CONTROL_CHANGE:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Controller change  %03u %03u %03u\n",
-					operation, channel, param1, param2);
+			verbose_print("Serial  0x%x Controller change  %03u %03u %03u\n",
+				      operation, channel, param1, param2);
 			snd_seq_ev_set_controller(&ev, channel, param1, param2);
 			break;
 
 		case MIDI_PROGRAM_CHANGE:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Program change     %03u %03u\n",
-					operation, channel, param1);
+			verbose_print("Serial  0x%x Program change     %03u %03u\n",
+				      operation, channel, param1);
 			snd_seq_ev_set_pgmchange(&ev, channel, param1);
 			break;
 
 		case MIDI_MONO_KEY_PRESSURE:
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Channel change     %03u %03u\n",
-					operation, channel, param1);
+			verbose_print("Serial  0x%x Channel change     %03u %03u\n",
+				      operation, channel, param1);
 			snd_seq_ev_set_chanpress(&ev, channel, param1);
 			break;
 
 		case MIDI_PITCH_BEND:
 			param1 = (param1 & 0x7F) + ((param2 & 0x7F) << 7);
-			if (!arguments.silent && arguments.verbose) 
-				printf("Serial  0x%x Pitch bend         %03u %05i\n",
-					operation, channel, param1);
+			verbose_print("Serial  0x%x Pitch bend         %03u %05i\n",
+				      operation, channel, param1);
 			/* in alsa MIDI we want signed int */
 			snd_seq_ev_set_pitchbend(&ev, channel, param1 - 8192);
 			break;
@@ -301,6 +295,7 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 
 	snd_seq_event_output_direct(seq, &ev);
 	snd_seq_drain_output(seq);
+#undef verbose_print
 }
 
 static inline bool is_status(char buf)
