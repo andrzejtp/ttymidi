@@ -373,6 +373,8 @@ int main(int argc, char** argv)
 
 	/* Open MIDI output port */
 	port_out_id = open_seq(&seq);
+	if (port_out_id < 0)
+		exit(-1);
 
 	/* 
 	 * Open modem device for reading and not as controlling tty
