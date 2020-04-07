@@ -318,7 +318,7 @@ static inline bool is_comment(char buf[3])
 		do {					\
 			ret = read(fd, buf, n);		\
 			if (ret < 0 && errno == EINTR)	\
-					return;		\
+				return;			\
 		} while (ret < 0);			\
 	} while (0)
 
@@ -392,6 +392,10 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 	}
 }
 
+static void exit_cli(int sig)
+{
+}
+
 int main(int argc, char** argv)
 {
 	struct termios oldtio;
@@ -399,6 +403,9 @@ int main(int argc, char** argv)
 	snd_seq_t *seq;
 	int port_out_id;
 	int serial;
+	struct sigaction int_handler = {
+		.sa_handler=exit_cli,
+	};
 
 	argp_parse(&argp, argc, argv, 0, 0, &arguments);
 
@@ -444,6 +451,10 @@ int main(int argc, char** argv)
 		ioctl(serial, TIOCSSERIAL, &ser_info);
 	}
 #endif
+	if (sigaction(SIGINT, &int_handler, 0) < 0) {
+		perror("sigaction");
+		exit(-1);
+	}
 
 	read_midi_from_serial_port(seq, port_out_id, serial);
 
