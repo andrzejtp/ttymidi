@@ -1,5 +1,5 @@
 all:
-	gcc src/ttymidi.c -o ttymidi -lasound
+	gcc -Wall -pedantic src/ttymidi.c -o ttymidi -lasound
 clean:
 	rm ttymidi
 install:
