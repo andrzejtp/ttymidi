@@ -152,7 +152,10 @@ static int open_seq(snd_seq_t** seq)
 		return -1;
 	}
 
-	snd_seq_set_client_name(*seq, arguments.name);
+	if (snd_seq_set_client_name(*seq, arguments.name) < 0) {
+		fprintf(stderr, "Error setting ALSA client name.\n");
+		return -1;
+	}
 
 	port_id = snd_seq_create_simple_port(*seq, "MIDI out",
 					     SND_SEQ_PORT_CAP_READ | SND_SEQ_PORT_CAP_SUBS_READ,
@@ -286,8 +289,11 @@ static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 			break;
 	}
 
-	snd_seq_event_output_direct(seq, &ev);
-	snd_seq_drain_output(seq);
+	if (snd_seq_event_output_direct(seq, &ev) < 0)
+		fprintf(stderr, "\nsnd_seq_event_output_direct failed\n");
+
+	if (snd_seq_drain_output(seq) < 0)
+		fprintf(stderr, "\nsnd_seq_drain_output failed\n");
 #undef verbose_print
 }
 
