@@ -64,8 +64,6 @@ static struct argp_option options[] = {
 
 static char doc[] = "ttymidi - Connect serial port devices to ALSA MIDI programs!";
 
-static bool run = true;
-
 static error_t parse_opt(int key, char *arg, struct argp_state *state)
 {
 	/* Get the input argument from argp_parse, which we
@@ -193,11 +191,6 @@ static void build_midi_termios(struct termios *newtio)
 
 }
 
-static void exit_cli(int sig) {
-	run = false;
-	printf("\rttymidi closing down ... ");
-}
-
 static void parse_midi_command(snd_seq_t* seq, int port_out_id, char *buf)
 {
 #define verbose_print(fmt, ...) if (!arguments.silent && arguments.verbose) printf(fmt, __VA_ARGS__)
@@ -313,6 +306,16 @@ static inline bool is_comment(char buf[3])
 	return buf[0] == (char)0xFF && buf[1] == (char)0x00 && buf[2] == (char)0x00;
 }
 
+#define handle_read(fd, buf, n)				\
+	do {						\
+		int ret;				\
+		do {					\
+			ret = read(fd, buf, n);		\
+			if (ret < 0 && errno == EINTR)	\
+					return;		\
+		} while (ret < 0);			\
+	} while (0)
+
 static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int serial)
 {
 	char buf[3];
@@ -322,15 +325,15 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		printf("Super debug mode: Only printing the signal to screen. Nothing else.\n");
 	else /* Lets first fast forward to first status byte... */
 		do
-			read(serial, &buf[0], 1);
+			handle_read(serial, &buf[0], 1);
 		while (!is_status(buf[0]));
 
-	while (run) {
+	while (true) {
 		int i;
 
 		/* super-debug mode: only print to screen whatever comes through the serial port */
 		if (arguments.printonly) {
-			read(serial, &buf[0], 1);
+			handle_read(serial, &buf[0], 1);
 			printf("%x\t", (int)buf[0] & 0xFF);
 			fflush(stdout);
 			continue;
@@ -338,7 +341,7 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 
 		/* let's start at the beginning of a midi command */
 		for (i = 1; ; ) {
-			read(serial, &buf[i], 1);
+			handle_read(serial, &buf[i], 1);
 
 			if (is_status(buf[i])) {
 				/* Status byte received and will always be first bit! */
@@ -362,10 +365,10 @@ static void read_midi_from_serial_port(snd_seq_t* seq, int port_out_id, int seri
 		if (is_comment(buf)) {
 			int len;
 
-			read(serial, &buf[0], 1);
+			handle_read(serial, &buf[0], 1);
 			len = (unsigned char)buf[0];
 
-			read(serial, msg, len);
+			handle_read(serial, msg, len);
 
 			if (arguments.silent)
 				continue;
@@ -436,15 +439,6 @@ int main(int argc, char** argv)
 	}
 #endif
 
-	if (signal(SIGINT, exit_cli) == SIG_ERR) {
-		perror("signal");
-		exit(-1);
-	}
-	if (signal(SIGTERM, exit_cli) == SIG_ERR) {
-		perror("signal");
-		exit(-1);
-	}
-
 	read_midi_from_serial_port(seq, port_out_id, serial);
 
 	/* restore the old port settings */
@@ -453,5 +447,5 @@ int main(int argc, char** argv)
 		exit(-1);
 	}
 
-	printf("\ndone!\n");
+	printf("\nttymidi closed!\n");
 }
